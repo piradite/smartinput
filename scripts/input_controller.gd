@@ -206,21 +206,29 @@ func populate_group(group_name: String):
 func _build_menu_in_container(container: VBoxContainer):
     for child in container.get_children(): child.queue_free()
     var rows = VBoxContainer.new(); rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL; container.add_child(rows)
-    var header = HBoxContainer.new(); var lbl_name = Label.new(); lbl_name.text = " ACTION"; lbl_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL; lbl_name.size_flags_stretch_ratio = 2.0; header.add_child(lbl_name)
-    for i in range(bindings_per_action):
-        var lbl = Label.new(); lbl.text = ["PRIMARY", "SECONDARY", "TERTIARY"][i]; lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; header.add_child(lbl)
-    rows.add_child(header)
+    
+    if InputConfig.menu_show_column_headers:
+        var header = HBoxContainer.new(); var lbl_name = Label.new(); lbl_name.text = " ACTION"; lbl_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL; lbl_name.size_flags_stretch_ratio = 2.0; header.add_child(lbl_name)
+        for i in range(bindings_per_action):
+            var lbl = Label.new(); lbl.text = ["PRIMARY", "SECONDARY", "TERTIARY"][i]; lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL; header.add_child(lbl)
+        rows.add_child(header)
+    
     for category in get_categories():
-        rows.add_child(HSeparator.new()); var cat_lbl = Label.new(); cat_lbl.text = category.to_upper(); cat_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; rows.add_child(cat_lbl)
+        if InputConfig.menu_show_category_headers:
+            if InputConfig.menu_show_separators: rows.add_child(HSeparator.new())
+            var cat_lbl = Label.new(); cat_lbl.text = category.to_upper(); cat_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; rows.add_child(cat_lbl)
+        
         for action in get_actions_in_category(category):
             if action.behavior == InputActionScript.Behavior.PRESS: _spawn_row(rows, action.id, action.display_name)
             else:
-                var act_lbl = Label.new(); act_lbl.text = action.display_name; rows.add_child(act_lbl)
+                if InputConfig.menu_show_action_headers:
+                    var act_lbl = Label.new(); act_lbl.text = action.display_name; rows.add_child(act_lbl)
                 _spawn_row(rows, action.id, action.up_display_name, "up")
                 _spawn_row(rows, action.id, action.down_display_name, "down")
                 _spawn_row(rows, action.id, action.left_display_name, "left")
                 _spawn_row(rows, action.id, action.right_display_name, "right")
-    if show_restore_defaults:
+    
+    if show_restore_defaults and InputConfig.menu_show_restore_defaults:
         var btn = Button.new(); btn.text = "RESTORE ALL DEFAULTS"; btn.pressed.connect(func(): restore_defaults()); rows.add_child(btn)
 func _spawn_row(container: VBoxContainer, id: StringName, label: String, dir: String = "", scene_override: PackedScene = null):
     var res = _action_map.get(id)

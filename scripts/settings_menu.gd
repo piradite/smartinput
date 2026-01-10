@@ -38,10 +38,10 @@ func _ready():
     if search_placeholder == "Search actions...": search_placeholder = InputConfig.menu_search_placeholder
     if restore_label == "RESTORE ALL DEFAULTS": restore_label = InputConfig.menu_restore_label
     
-    if show_column_headers: show_column_headers = InputConfig.menu_show_column_headers
-    if show_category_headers: show_category_headers = InputConfig.menu_show_category_headers
-    if show_action_headers: show_action_headers = InputConfig.menu_show_action_headers
-    if show_separators: show_separators = InputConfig.menu_show_separators
+    show_column_headers = InputConfig.menu_show_column_headers
+    show_category_headers = InputConfig.menu_show_category_headers
+    show_action_headers = InputConfig.menu_show_action_headers
+    show_separators = InputConfig.menu_show_separators
 
     if not keybind_scene_override and InputConfig.menu_keybind_scene_override: keybind_scene_override = InputConfig.menu_keybind_scene_override
     if not category_header_scene and InputConfig.menu_category_header_scene: category_header_scene = InputConfig.menu_category_header_scene
