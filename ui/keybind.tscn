@@ -1,0 +1,36 @@
+[gd_scene load_steps=2 format=3 uid="uid://hd6sdrvs112r"]
+
+[ext_resource type="Script" uid="uid://cet8g6bnsg68v" path="res://addons/smartinput/scripts/keybind.gd" id="1_script"]
+
+[node name="Keybind" type="HBoxContainer"]
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 31.0
+grow_horizontal = 2
+theme_override_constants/separation = 10
+script = ExtResource("1_script")
+
+[node name="ActionName" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+text = "Action Name"
+vertical_alignment = 1
+
+[node name="Button0" type="Button" parent="."]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Key 1"
+
+[node name="Button1" type="Button" parent="."]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Key 2"
+
+[node name="Button2" type="Button" parent="."]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Key 3"
