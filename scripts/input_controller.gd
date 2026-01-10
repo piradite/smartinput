@@ -146,9 +146,9 @@ func _initialize_bindings():
     for res in input_actions.actions:
         if not res or res.id == &"": continue
         _action_map[res.id] = res
-        if res.behavior == InputAction.Behavior.PRESS:
+        if res.behavior == InputActionScript.Behavior.PRESS:
             _register(res.id, res.events)
-        elif res.behavior == InputAction.Behavior.VECTOR_2:
+        elif res.behavior == InputActionScript.Behavior.VECTOR_2:
             _register(res.id + "_" + res.up_suffix, res.up, res.deadzone)
             _register(res.id + "_" + res.down_suffix, res.down, res.deadzone)
             _register(res.id + "_" + res.left_suffix, res.left, res.deadzone)
@@ -198,7 +198,7 @@ func _build_menu_in_container(container: VBoxContainer):
     for category in get_categories():
         rows.add_child(HSeparator.new()); var cat_lbl = Label.new(); cat_lbl.text = category.to_upper(); cat_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER; rows.add_child(cat_lbl)
         for action in get_actions_in_category(category):
-            if action.behavior == InputAction.Behavior.PRESS: _spawn_row(rows, action.id, action.display_name)
+            if action.behavior == InputActionScript.Behavior.PRESS: _spawn_row(rows, action.id, action.display_name)
             else:
                 var act_lbl = Label.new(); act_lbl.text = action.display_name; rows.add_child(act_lbl)
                 _spawn_row(rows, action.id, action.up_display_name, "up")
@@ -228,7 +228,7 @@ func _unhandled_input(event):
     for id in _action_map:
         if is_action_blocked(id): continue
         var res = _action_map[id]
-        if res.behavior == InputAction.Behavior.PRESS:
+        if res.behavior == InputActionScript.Behavior.PRESS:
             if event.is_action_pressed(id): action_pressed.emit(id)
             elif event.is_action_released(id): action_released.emit(id)
 func populate_menus(): request_menu_build.emit()
@@ -236,8 +236,8 @@ func set_bindings_count(count: int): bindings_per_action = clampi(count, 1, 3); 
 func is_valid_input(action_id: StringName, event: InputEvent, direction: String = "") -> bool:
     var res = _action_map.get(action_id)
     if res:
-        if res.device_limit == InputAction.DeviceRequirement.KEYBOARD_ONLY and (event is InputEventJoypadButton or event is InputEventJoypadMotion): return false
-        if res.device_limit == InputAction.DeviceRequirement.CONTROLLER_ONLY and (event is InputEventKey or event is InputEventMouseButton): return false
+        if res.device_limit == InputActionScript.DeviceRequirement.KEYBOARD_ONLY and (event is InputEventJoypadButton or event is InputEventJoypadMotion): return false
+        if res.device_limit == InputActionScript.DeviceRequirement.CONTROLLER_ONLY and (event is InputEventKey or event is InputEventMouseButton): return false
     var base_key = str(action_id); var dir_key = str(action_id) + ":" + direction if not direction.is_empty() else ""
     var wl = _whitelists.get(dir_key, _whitelists.get(base_key))
     if wl != null and not is_event_in_list(event, wl): return false
@@ -284,7 +284,7 @@ func save_config():
     var config = ConfigFile.new()
     for id in _action_map:
         var res = _action_map[id]
-        if res.behavior == InputAction.Behavior.PRESS: config.set_value("bindings", id, res.events)
+        if res.behavior == InputActionScript.Behavior.PRESS: config.set_value("bindings", id, res.events)
         else:
             config.set_value("bindings", id + "_" + res.up_suffix, res.up); config.set_value("bindings", id + "_" + res.down_suffix, res.down)
             config.set_value("bindings", id + "_" + res.left_suffix, res.left); config.set_value("bindings", id + "_" + res.right_suffix, res.right)
@@ -293,9 +293,9 @@ func load_config():
     var config = ConfigFile.new(); if config.load(save_path) != OK: return
     for id in _action_map:
         var res = _action_map[id]
-        if res.behavior == InputAction.Behavior.PRESS and config.has_section_key("bindings", id):
+        if res.behavior == InputActionScript.Behavior.PRESS and config.has_section_key("bindings", id):
             res.events = config.get_value("bindings", id); _rebuild_input_map(id, res.events)
-        elif res.behavior == InputAction.Behavior.VECTOR_2:
+        elif res.behavior == InputActionScript.Behavior.VECTOR_2:
             res.up = config.get_value("bindings", id + "_" + res.up_suffix, res.up); res.down = config.get_value("bindings", id + "_" + res.down_suffix, res.down)
             res.left = config.get_value("bindings", id + "_" + res.left_suffix, res.left); res.right = config.get_value("bindings", id + "_" + res.right_suffix, res.right)
             _rebuild_input_map(id + "_" + res.up_suffix, res.up); _rebuild_input_map(id + "_" + res.down_suffix, res.down)
@@ -310,7 +310,7 @@ func get_display_name(id: StringName) -> String:
     var s_id = str(id); if "_" in s_id:
         for base_id in _action_map:
             var base_s = str(base_id); if s_id.begins_with(base_s + "_"):
-                var action = _action_map[base_id]; if action.behavior == InputAction.Behavior.VECTOR_2:
+                var action = _action_map[base_id]; if action.behavior == InputActionScript.Behavior.VECTOR_2:
                     var suffix = s_id.trim_prefix(base_s + "_"); var dn = ""
                     if suffix == action.up_suffix: dn = action.up_display_name
                     elif suffix == action.down_suffix: dn = action.down_display_name
