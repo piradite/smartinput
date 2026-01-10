@@ -25,14 +25,14 @@ func _ready():
             _buttons.append(child)
             child.pressed.connect(_on_button_pressed.bind(_buttons.size() - 1))
             child.gui_input.connect(_on_button_gui_input.bind(_buttons.size() - 1))
-            child.focus_entered.connect(_on_button_focused)
+            child.focus_entered.connect(_on_button_focused.bind(child))
             child.size_flags_horizontal = Control.SIZE_EXPAND_FILL
             child.size_flags_stretch_ratio = menu.button_stretch_ratio if menu else InputConfig.menu_button_stretch_ratio
     set_process_unhandled_input(false)
-func _on_button_focused():
+func _on_button_focused(child: Control):
     var scroll = get_parent_control()
     while scroll and not scroll is ScrollContainer: scroll = scroll.get_parent_control()
-    if scroll: scroll.ensure_control_visible(self)
+    if scroll: scroll.ensure_control_visible(child)
 func _on_button_gui_input(event: InputEvent, index: int):
     if event.is_pressed() and InputController.is_event_in_list(event, InputController.unbind_inputs):
         if not InputController.is_index_locked(action_id, index, direction):
