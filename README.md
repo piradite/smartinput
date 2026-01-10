@@ -105,6 +105,10 @@ Below is the full list of configurable properties available via `InputController
 **SettingsMenu (InputConfig.menu_*)**
 *   `show_search` (bool): Toggle search bar visibility.
 *   `column_titles` (Array[String]): List of titles for the binding columns.
+*   `show_column_headers` (bool): Toggle visibility of the "ACTION PRIMARY..." header row.
+*   `show_category_headers` (bool): Toggle visibility of category labels (e.g. "GAMEPLAY").
+*   `show_action_headers` (bool): Toggle visibility of base titles for Vector2 actions.
+*   `show_separators` (bool): Toggle visibility of HSeparators between categories.
 *   `label_stretch_ratio` (float): Horizontal size ratio for action labels.
 *   `button_stretch_ratio` (float): Horizontal size ratio for binding buttons.
 *   `search_placeholder` (String): Placeholder text for the search bar.

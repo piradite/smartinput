@@ -19,143 +19,154 @@ extends VBoxContainer
 @export var search_placeholder: String = "Search actions..."
 @export var restore_label: String = "RESTORE ALL DEFAULTS"
 
+@export_group("Visibility")
+@export var show_column_headers: bool = true
+@export var show_category_headers: bool = true
+@export var show_action_headers: bool = true
+@export var show_separators: bool = true
+
 var _search_query: String = ""
 var _search_edit: LineEdit
 var _rows_container: VBoxContainer
 var _last_focused: Control
 
 func _ready():
-	if show_search: show_search = InputConfig.menu_show_search
-	if column_titles == ["PRIMARY", "SECONDARY", "TERTIARY"]: column_titles = InputConfig.menu_column_titles
-	if label_stretch_ratio == 2.0: label_stretch_ratio = InputConfig.menu_label_stretch_ratio
-	if button_stretch_ratio == 1.0: button_stretch_ratio = InputConfig.menu_button_stretch_ratio
-	if search_placeholder == "Search actions...": search_placeholder = InputConfig.menu_search_placeholder
-	if restore_label == "RESTORE ALL DEFAULTS": restore_label = InputConfig.menu_restore_label
+    if show_search: show_search = InputConfig.menu_show_search
+    if column_titles == ["PRIMARY", "SECONDARY", "TERTIARY"]: column_titles = InputConfig.menu_column_titles
+    if label_stretch_ratio == 2.0: label_stretch_ratio = InputConfig.menu_label_stretch_ratio
+    if button_stretch_ratio == 1.0: button_stretch_ratio = InputConfig.menu_button_stretch_ratio
+    if search_placeholder == "Search actions...": search_placeholder = InputConfig.menu_search_placeholder
+    if restore_label == "RESTORE ALL DEFAULTS": restore_label = InputConfig.menu_restore_label
+    
+    if show_column_headers: show_column_headers = InputConfig.menu_show_column_headers
+    if show_category_headers: show_category_headers = InputConfig.menu_show_category_headers
+    if show_action_headers: show_action_headers = InputConfig.menu_show_action_headers
+    if show_separators: show_separators = InputConfig.menu_show_separators
 
-	if not keybind_scene_override and InputConfig.menu_keybind_scene_override: keybind_scene_override = InputConfig.menu_keybind_scene_override
-	if not category_header_scene and InputConfig.menu_category_header_scene: category_header_scene = InputConfig.menu_category_header_scene
-	if not action_header_scene and InputConfig.menu_action_header_scene: action_header_scene = InputConfig.menu_action_header_scene
-	if not column_header_scene and InputConfig.menu_column_header_scene: column_header_scene = InputConfig.menu_column_header_scene
-	if not search_bar_scene and InputConfig.menu_search_bar_scene: search_bar_scene = InputConfig.menu_search_bar_scene
-	if not footer_scene and InputConfig.menu_footer_scene: footer_scene = InputConfig.menu_footer_scene
-	
-	add_to_group("SmartInputMenu")
-	InputController.bindings_updated.connect(_build_menu)
-	InputController.request_menu_build.connect(_build_menu)
-	get_viewport().gui_focus_changed.connect(_on_focus_changed)
-	var scroll = get_parent()
-	if scroll is ScrollContainer: scroll.follow_focus = true
-	if show_search: _create_search_bar()
-	_rows_container = VBoxContainer.new()
-	_rows_container.size_flags_horizontal = SIZE_EXPAND_FILL
-	add_child(_rows_container)
-	_build_menu()
+    if not keybind_scene_override and InputConfig.menu_keybind_scene_override: keybind_scene_override = InputConfig.menu_keybind_scene_override
+    if not category_header_scene and InputConfig.menu_category_header_scene: category_header_scene = InputConfig.menu_category_header_scene
+    if not action_header_scene and InputConfig.menu_action_header_scene: action_header_scene = InputConfig.menu_action_header_scene
+    if not column_header_scene and InputConfig.menu_column_header_scene: column_header_scene = InputConfig.menu_column_header_scene
+    if not search_bar_scene and InputConfig.menu_search_bar_scene: search_bar_scene = InputConfig.menu_search_bar_scene
+    if not footer_scene and InputConfig.menu_footer_scene: footer_scene = InputConfig.menu_footer_scene
+    
+    add_to_group("SmartInputMenu")
+    InputController.bindings_updated.connect(_build_menu)
+    InputController.request_menu_build.connect(_build_menu)
+    get_viewport().gui_focus_changed.connect(_on_focus_changed)
+    var scroll = get_parent()
+    if scroll is ScrollContainer: scroll.follow_focus = true
+    if show_search: _create_search_bar()
+    _rows_container = VBoxContainer.new()
+    _rows_container.size_flags_horizontal = SIZE_EXPAND_FILL
+    add_child(_rows_container)
+    _build_menu()
 
 func _on_focus_changed(control: Control):
-	if control and is_ancestor_of(control): _last_focused = control
+    if control and is_ancestor_of(control): _last_focused = control
 
 func _input(event):
-	if not get_viewport().gui_get_focus_owner():
-		if event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down") or \
-		   event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right"):
-			if _last_focused and _last_focused.is_inside_tree() and _last_focused.visible: _last_focused.grab_focus()
-			elif _search_edit and _search_edit.visible: _search_edit.grab_focus()
-			else: _focus_first_button()
-			get_viewport().set_input_as_handled()
+    if not get_viewport().gui_get_focus_owner():
+        if event.is_action_pressed("ui_up") or event.is_action_pressed("ui_down") or \
+           event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right"):
+            if _last_focused and _last_focused.is_inside_tree() and _last_focused.visible: _last_focused.grab_focus()
+            elif _search_edit and _search_edit.visible: _search_edit.grab_focus()
+            else: _focus_first_button()
+            get_viewport().set_input_as_handled()
 
 func _build_menu():
-	if not _rows_container: return
-	for child in _rows_container.get_children(): child.queue_free()
-	_create_column_headers()
-	var categories = InputController.get_categories()
-	for category in categories:
-		var actions = InputController.get_actions_in_category(category)
-		var filtered = actions.filter(func(a): return _search_query.is_empty() or a.display_name.to_lower().contains(_search_query.to_lower()) or str(a.id).to_lower().contains(_search_query.to_lower()) or category.to_lower().contains(_search_query.to_lower()))
-		if filtered.is_empty(): continue
-		_create_category_header(category)
-		for action in filtered:
-			if action.behavior == InputAction.Behavior.PRESS:
-				_spawn_row(action.id, action.display_name)
-			elif action.behavior == InputAction.Behavior.VECTOR_2:
-				_create_action_header(action.display_name)
-				_spawn_row(action.id, action.up_display_name, "up")
-				_spawn_row(action.id, action.down_display_name, "down")
-				_spawn_row(action.id, action.left_display_name, "left")
-				_spawn_row(action.id, action.right_display_name, "right")
-	_create_footer()
+    if not _rows_container: return
+    for child in _rows_container.get_children(): child.queue_free()
+    if show_column_headers: _create_column_headers()
+    var categories = InputController.get_categories()
+    for category in categories:
+        var actions = InputController.get_actions_in_category(category)
+        var filtered = actions.filter(func(a): return _search_query.is_empty() or a.display_name.to_lower().contains(_search_query.to_lower()) or str(a.id).to_lower().contains(_search_query.to_lower()) or category.to_lower().contains(_search_query.to_lower()))
+        if filtered.is_empty(): continue
+        if show_category_headers: _create_category_header(category)
+        for action in filtered:
+            if action.behavior == InputAction.Behavior.PRESS:
+                _spawn_row(action.id, action.display_name)
+            elif action.behavior == InputAction.Behavior.VECTOR_2:
+                if show_action_headers: _create_action_header(action.display_name)
+                _spawn_row(action.id, action.up_display_name, "up")
+                _spawn_row(action.id, action.down_display_name, "down")
+                _spawn_row(action.id, action.left_display_name, "left")
+                _spawn_row(action.id, action.right_display_name, "right")
+    _create_footer()
 
 func _create_search_bar():
-	if search_bar_scene:
-		var node = search_bar_scene.instantiate()
-		add_child(node)
-		_search_edit = node if node is LineEdit else node.find_child("*", true, false)
-	else:
-		_search_edit = LineEdit.new()
-		_search_edit.placeholder_text = search_placeholder
-		_search_edit.clear_button_enabled = true
-		add_child(_search_edit)
-		add_child(HSeparator.new())
-	_search_edit.text_changed.connect(func(t): _search_query = t; _build_menu())
-	_search_edit.gui_input.connect(func(e): if e.is_action_pressed("ui_down"): _focus_first_button(); get_viewport().set_input_as_handled())
+    if search_bar_scene:
+        var node = search_bar_scene.instantiate()
+        add_child(node)
+        _search_edit = node if node is LineEdit else node.find_child("*", true, false)
+    else:
+        _search_edit = LineEdit.new()
+        _search_edit.placeholder_text = search_placeholder
+        _search_edit.clear_button_enabled = true
+        add_child(_search_edit)
+        add_child(HSeparator.new())
+    _search_edit.text_changed.connect(func(t): _search_query = t; _build_menu())
+    _search_edit.gui_input.connect(func(e): if e.is_action_pressed("ui_down"): _focus_first_button(); get_viewport().set_input_as_handled())
 
 func _focus_first_button():
-	for row in _rows_container.get_children():
-		for child in row.get_children():
-			if child is Button and child.focus_mode != Control.FOCUS_NONE: child.grab_focus(); return
+    for row in _rows_container.get_children():
+        for child in row.get_children():
+            if child is Button and child.focus_mode != Control.FOCUS_NONE: child.grab_focus(); return
 
 func _create_footer():
-	if footer_scene:
-		_rows_container.add_child(footer_scene.instantiate())
-	elif InputController.show_restore_defaults and InputConfig.menu_show_restore_defaults:
-		var btn = Button.new()
-		btn.text = restore_label
-		btn.pressed.connect(func(): InputController.restore_defaults())
-		_rows_container.add_child(btn)
+    if footer_scene:
+        _rows_container.add_child(footer_scene.instantiate())
+    elif InputController.show_restore_defaults and InputConfig.menu_show_restore_defaults:
+        var btn = Button.new()
+        btn.text = restore_label
+        btn.pressed.connect(func(): InputController.restore_defaults())
+        _rows_container.add_child(btn)
 
 func _create_column_headers():
-	if column_header_scene:
-		_rows_container.add_child(column_header_scene.instantiate())
-		return
-	var header = HBoxContainer.new()
-	var lbl_name = Label.new()
-	lbl_name.text = " ACTION"
-	lbl_name.size_flags_horizontal = SIZE_EXPAND_FILL
-	lbl_name.size_flags_stretch_ratio = label_stretch_ratio
-	header.add_child(lbl_name)
-	for i in range(InputController.bindings_per_action):
-		var lbl = Label.new()
-		lbl.text = column_titles[i] if i < column_titles.size() else ""
-		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lbl.size_flags_horizontal = SIZE_EXPAND_FILL
-		header.add_child(lbl)
-	_rows_container.add_child(header)
+    if column_header_scene:
+        _rows_container.add_child(column_header_scene.instantiate())
+        return
+    var header = HBoxContainer.new()
+    var lbl_name = Label.new()
+    lbl_name.text = " ACTION"
+    lbl_name.size_flags_horizontal = SIZE_EXPAND_FILL
+    lbl_name.size_flags_stretch_ratio = label_stretch_ratio
+    header.add_child(lbl_name)
+    for i in range(InputController.bindings_per_action):
+        var lbl = Label.new()
+        lbl.text = column_titles[i] if i < column_titles.size() else ""
+        lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+        lbl.size_flags_horizontal = SIZE_EXPAND_FILL
+        header.add_child(lbl)
+    _rows_container.add_child(header)
 
 func _create_category_header(text: String):
-	if category_header_scene:
-		var node = category_header_scene.instantiate()
-		if node.has_method("set_text"): node.set_text(text)
-		_rows_container.add_child(node)
-	else:
-		_rows_container.add_child(HSeparator.new())
-		var lbl = Label.new()
-		lbl.text = text.to_upper()
-		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		_rows_container.add_child(lbl)
+    if category_header_scene:
+        var node = category_header_scene.instantiate()
+        if node.has_method("set_text"): node.set_text(text)
+        _rows_container.add_child(node)
+    else:
+        if show_separators: _rows_container.add_child(HSeparator.new())
+        var lbl = Label.new()
+        lbl.text = text.to_upper()
+        lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+        _rows_container.add_child(lbl)
 
 func _create_action_header(text: String):
-	if action_header_scene:
-		var node = action_header_scene.instantiate()
-		if node.has_method("set_text"): node.set_text(text)
-		_rows_container.add_child(node)
-	else:
-		var lbl = Label.new()
-		lbl.text = text
-		_rows_container.add_child(lbl)
+    if action_header_scene:
+        var node = action_header_scene.instantiate()
+        if node.has_method("set_text"): node.set_text(text)
+        _rows_container.add_child(node)
+    else:
+        var lbl = Label.new()
+        lbl.text = text
+        _rows_container.add_child(lbl)
 
 func _spawn_row(id: StringName, label_text: String, direction: String = ""):
-	InputController._spawn_row(_rows_container, id, label_text, direction, keybind_scene_override)
+    InputController._spawn_row(_rows_container, id, label_text, direction, keybind_scene_override)
 
 func _add_menu_spacer(thick: bool):
-	var control = Control.new()
-	control.custom_minimum_size.y = 10 if thick else 2
-	_rows_container.add_child(control)
+    var control = Control.new()
+    control.custom_minimum_size.y = 10 if thick else 2
+    _rows_container.add_child(control)

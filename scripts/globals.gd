@@ -14,6 +14,10 @@ static var menu_button_stretch_ratio: float = 1.0
 static var menu_search_placeholder: String = "Search actions..."
 static var menu_restore_label: String = "RESTORE ALL DEFAULTS"
 static var menu_show_restore_defaults: bool = true
+static var menu_show_column_headers: bool = true
+static var menu_show_category_headers: bool = true
+static var menu_show_action_headers: bool = true
+static var menu_show_separators: bool = true
 
 # Template Scenes
 static var menu_keybind_scene_override: PackedScene

@@ -40,6 +40,18 @@ class SettingsMenuProxy:
     var show_restore_defaults: bool:
         get: return InputConfig.menu_show_restore_defaults
         set(v): InputConfig.menu_show_restore_defaults = v
+    var show_column_headers: bool:
+        get: return InputConfig.menu_show_column_headers
+        set(v): InputConfig.menu_show_column_headers = v
+    var show_category_headers: bool:
+        get: return InputConfig.menu_show_category_headers
+        set(v): InputConfig.menu_show_category_headers = v
+    var show_action_headers: bool:
+        get: return InputConfig.menu_show_action_headers
+        set(v): InputConfig.menu_show_action_headers = v
+    var show_separators: bool:
+        get: return InputConfig.menu_show_separators
+        set(v): InputConfig.menu_show_separators = v
 
     var keybind_scene_override: PackedScene:
         get: return InputConfig.menu_keybind_scene_override
