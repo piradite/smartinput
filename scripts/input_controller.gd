@@ -19,9 +19,12 @@ class SettingsMenuProxy:
     var show_search: bool:
         get: return InputConfig.menu_show_search
         set(v): InputConfig.menu_show_search = v
-    var column_titles: Array[String]:
+    var column_titles: Array:
         get: return InputConfig.menu_column_titles
-        set(v): InputConfig.menu_column_titles = v
+        set(v): 
+            var typed: Array[String] = []
+            typed.assign(v)
+            InputConfig.menu_column_titles = typed
     var label_stretch_ratio: float:
         get: return InputConfig.menu_label_stretch_ratio
         set(v): InputConfig.menu_label_stretch_ratio = v
