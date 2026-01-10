@@ -96,9 +96,12 @@ func _apply_remap_to_index(index: int, event: InputEvent):
     _update_buttons()
 func _cancel_remap(): _cleanup_remap(); _update_buttons()
 func _cleanup_remap():
+    var target_btn = _buttons[current_remap_index] if current_remap_index != -1 else null
     is_remapping = false; InputController.is_remapping = false; current_remap_index = -1
     for btn in _buttons: btn.mouse_filter = Control.MOUSE_FILTER_STOP
     set_process_unhandled_input(false)
+    if target_btn and target_btn.is_inside_tree() and target_btn.visible:
+        target_btn.grab_focus()
 func _update_buttons():
     var events = InputController.get_action_events(action_id) if direction == "" else InputController.get_vector_events(action_id, direction)
     for i in range(_buttons.size()):
