@@ -10,7 +10,7 @@ High-Flexibility Input Remapping Framework for Godot 4.5+
 &ensp;[<kbd> <br> Usage <br> </kbd>](#Usage)&ensp;
 &ensp;[<kbd> <br> Installation <br> </kbd>](#Installation)&ensp;
 &ensp;[<kbd> <br> API Reference <br> </kbd>](#api-reference)&ensp;
-&ensp;[<kbd> <br> Icon Library Guide <br> </kbd>](#icon-library-inputiconlibrary)&ensp;
+&ensp;[<kbd> <br> Icon Library Guide <br> </kbd>](#icon-library-inputicon)&ensp;
 &ensp;[<kbd> <br> FAQ <br> </kbd>](#FAQ)&ensp;
 <br><br><br><br></div>
 
@@ -24,6 +24,8 @@ High-Flexibility Input Remapping Framework for Godot 4.5+
 * **Vector2 Support**: Automated generation of directional sub-actions (WASD/Sticks).
 * **Modifier Combos**: Native detection for Shift, Ctrl, Alt, and Meta combinations.
 * **Visual Icons**: Optional icon library support for visual button prompts.
+* **Dynamic Search**: Filter actions by name, category, ID, or bound key in real-time.
+* **Automatic UI**: One-click generation of fully functional, searchable remap menus.
 * **Whitelist/Blacklist**: Restrict remapping to specific keys or buttons.
 * **Custom Validators**: Assign a Callable for deep validation logic.
 
@@ -41,7 +43,7 @@ High-Flexibility Input Remapping Framework for Godot 4.5+
 2. Add actions to the `Actions` array. Choose **Press** for buttons or **Vector 2** for movement.
 3. Assign this resource to the controller in your game's init script:
    ```gdscript
-   func _ready():
+   func _ready() -> void:
        InputController.input_actions = load("res://controls.tres")
    ```
 
@@ -52,6 +54,7 @@ High-Flexibility Input Remapping Framework for Godot 4.5+
    ```gdscript
    InputController.populate_group("SettingsMenu")
    ```
+   *Note: This automatically injects a Search Bar and organizes actions into categories.*
 
 --------------------------------------------------------------------------------
 
@@ -61,7 +64,7 @@ High-Flexibility Input Remapping Framework for Godot 4.5+
 You can configure these via `InputController.Namespace.property` or `InputConfig.menu_property`.
 
 #### SettingsMenu (UI Layout & Visibility)
-*   `show_search` (bool): Toggle search bar visibility.
+*   `show_search` (bool): Toggle search bar visibility (Default: true).
 *   `search_placeholder` (String): Placeholder text for the search bar.
 *   `column_titles` (Array[String]): Titles for the binding columns.
 *   `show_column_headers` (bool): Toggle "ACTION PRIMARY..." header row.
@@ -78,7 +81,7 @@ You can configure these via `InputController.Namespace.property` or `InputConfig
 *   `category_header_scene` (PackedScene): Custom scene for category titles.
 *   `action_header_scene` (PackedScene): Custom scene for vector action headers.
 *   `column_header_scene` (PackedScene): Custom scene for the column title row.
-*   `search_bar_scene` (PackedScene): Custom scene replacing the search bar.
+*   `search_bar_scene` (PackedScene): Custom scene replacing the search bar (Default: `ui/search.tscn`).
 *   `footer_scene` (PackedScene): Custom scene replacing the footer area.
 
 #### Keybind & Action Defaults
@@ -104,15 +107,18 @@ You can configure these via `InputController.Namespace.property` or `InputConfig
 *   `restore_defaults()`: Resets all bindings to resource defaults.
 *   `keybind_scene` (PackedScene): Global default row scene.
 *   `modal_scene` (PackedScene): Optional scene for "Press any key" popup.
-*   `icon_library` (Resource): Active `InputIconLibrary` resource.
+*   `icon_library` (Resource): Active `InputIcon` resource.
 
 #### Constraints & Runtime Control
 *   `lock_action(id, locked, dir)`: Disables an entire row.
+*   `hide_action(id, dir)`: Hides an action from the UI menu dynamically.
+*   `unhide_action(id, dir)`: Forces a hidden action to be visible.
+*   `is_action_hidden(id, dir) -> bool`: Checks if an action is currently hidden.
 *   `block_slot(id, index, blocked, dir)`: Disables a specific column for an action.
 *   `block_category(cat)` / `unblock_category(cat)`: Hides/disables an entire category.
 *   `whitelist_inputs(id, list, dir)`: Only allow specific keys/buttons.
 *   `blacklist_inputs(id, list, dir)`: Prevent specific keys from being bound.
-*   `validator_func`: Custom validation: `func(id, event, dir) -> bool`.
+*   `validator_func`: Custom validation: `func(id, event, [dir]) -> bool`.
 
 --------------------------------------------------------------------------------
 
@@ -122,13 +128,14 @@ You can configure these via `InputController.Namespace.property` or `InputConfig
 *   `category` (String): Grouping for the menu.
 *   `behavior` (Enum): **Press** or **Vector 2**.
 *   `is_locked` (bool): Hard-lock the action in the UI.
+*   `is_hidden` (bool): Hide the action from the UI menu by default.
 *   `blocked_indices` (Array[int]): Indices of columns to disable.
 *   `custom_row_scene` (PackedScene): Visual override for this specific action.
 *   `device_limit` (Enum): Restrict hardware type for this action.
 
 --------------------------------------------------------------------------------
 
-## Icon Library (InputIconLibrary)
+## Icon Library (InputIcon)
 *   `keyboard_icons_path` (String): Folder for keyboard glyphs.
 *   `mouse_icons_path` (String): Folder for mouse glyphs.
 *   `gamepad_icons_path` (String): Folder for controller glyphs.

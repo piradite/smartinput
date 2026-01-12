@@ -2,6 +2,7 @@
 class_name InputConfig
 extends RefCounted
 
+
 # Keybind Defaults
 static var keybind_remapping_text: String = "..."
 static var keybind_unbound_text: String = "Unbound"
@@ -40,7 +41,7 @@ static var action_down_suffix: String = "down"
 static var action_left_suffix: String = "left"
 static var action_right_suffix: String = "right"
 
-# InputIconLibrary Defaults
+# InputIcon Defaults
 static var icon_keyboard_path: String = ""
 static var icon_mouse_path: String = ""
 static var icon_gamepad_path: String = ""

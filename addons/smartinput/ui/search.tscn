@@ -1,0 +1,7 @@
+[gd_scene format=3 uid="uid://df7j8k5l4n2m1"]
+
+[node name="SearchBar" type="LineEdit"]
+size_flags_horizontal = 3
+placeholder_text = "Search actions..."
+clear_button_enabled = true
+caret_blink = true
