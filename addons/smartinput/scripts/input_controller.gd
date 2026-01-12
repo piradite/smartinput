@@ -52,10 +52,20 @@ class SettingsMenuProxy:
 		set(v): 
 			InputConfig.menu_restore_label = v
 			_emit_update()
+	var revert_label: String:
+		get: return InputConfig.menu_revert_label
+		set(v): 
+			InputConfig.menu_revert_label = v
+			_emit_update()
 	var show_restore_defaults: bool:
 		get: return InputConfig.menu_show_restore_defaults
 		set(v): 
 			InputConfig.menu_show_restore_defaults = v
+			_emit_update()
+	var show_revert_changes: bool:
+		get: return InputConfig.menu_show_revert_changes
+		set(v): 
+			InputConfig.menu_show_revert_changes = v
 			_emit_update()
 	var show_column_headers: bool:
 		get: return InputConfig.menu_show_column_headers
@@ -175,7 +185,8 @@ const InputActionsList = InputActionsListScript
 @export var show_conflicts: bool = true
 @export var use_pretty_names: bool = true
 @export var show_restore_defaults: bool = true
-@export var unbind_inputs: Array = [KEY_DELETE, MOUSE_BUTTON_RIGHT]
+@export var show_revert_changes: bool = true
+@export var unbind_inputs: Array = [KEY_DELETE]
 @export_range(1, 3) var bindings_per_action: int = 3
 
 var is_remapping: bool = false
@@ -184,6 +195,8 @@ var _action_map: Dictionary = {}
 var _blocked_categories: Array[String] = []
 var _runtime_locks: Dictionary = {}
 var _runtime_hidden: Dictionary = {}
+var _runtime_toggles: Dictionary = {}
+var _toggle_states: Dictionary = {}
 var _runtime_slot_blocks: Dictionary = {}
 var _whitelists: Dictionary = {}
 var _blacklists: Dictionary = {}
@@ -211,12 +224,35 @@ func _unhandled_input(event: InputEvent) -> void:
 	for id in _action_map:
 		if is_action_blocked(id):
 			continue
+		
 		var res = _action_map[id]
 		if res.behavior == InputActionScript.Behavior.PRESS:
-			if event.is_action_pressed(id):
-				action_pressed.emit(id)
-			elif event.is_action_released(id):
-				action_released.emit(id)
+			if is_action_toggle(id):
+				if event.is_action_pressed(id):
+					var new_state = not _toggle_states.get(id, false)
+					_toggle_states[id] = new_state
+					if new_state:
+						action_pressed.emit(id)
+					else:
+						action_released.emit(id)
+			else:
+				if event.is_action_pressed(id):
+					action_pressed.emit(id)
+				elif event.is_action_released(id):
+					action_released.emit(id)
+		
+		elif res.behavior == InputActionScript.Behavior.VECTOR_2:
+			if is_action_toggle(id):
+				var directions = {
+					"up": res.up_suffix,
+					"down": res.down_suffix,
+					"left": res.left_suffix,
+					"right": res.right_suffix
+				}
+				for dir in directions:
+					var sub_id = str(id) + "_" + directions[dir]
+					if event.is_action_pressed(sub_id):
+						_toggle_states[sub_id] = not _toggle_states.get(sub_id, false)
 
 
 func _initialize_bindings() -> void:
@@ -272,6 +308,14 @@ func unhide_action(id: StringName, direction: String = "") -> void:
 	var key = str(id) + ( ":" + direction if not direction.is_empty() else "")
 	_runtime_hidden[key] = false
 	request_menu_build.emit()
+
+
+func set_action_toggle(id: StringName, enabled: bool, direction: String = "") -> void:
+	var key = str(id) + ( ":" + direction if not direction.is_empty() else "")
+	_runtime_toggles[key] = enabled
+	if not enabled:
+		_toggle_states.erase(id)
+	bindings_updated.emit()
 
 
 func block_slot(id: StringName, index: int, blocked: bool, direction: String = "") -> void:
@@ -331,6 +375,19 @@ func is_action_hidden(id: StringName, direction: String = "") -> bool:
 	
 	var res = _action_map.get(id)
 	return res.is_hidden if res else false
+
+
+func is_action_toggle(id: StringName, direction: String = "") -> bool:
+	var base_key = str(id)
+	var dir_key = str(id) + ":" + direction if not direction.is_empty() else ""
+	
+	if not dir_key.is_empty() and dir_key in _runtime_toggles:
+		return _runtime_toggles[dir_key]
+	if base_key in _runtime_toggles:
+		return _runtime_toggles[base_key]
+	
+	var res = _action_map.get(id)
+	return res.is_toggle if res else false
 
 
 func populate_group(group_name: String) -> void:
@@ -420,6 +477,12 @@ func remap_vector(id: StringName, direction: String, index: int, new_event: Inpu
 	arr[index] = new_event
 	_rebuild_input_map(id + "_" + _get_suffix(res, direction), arr)
 	bindings_updated.emit()
+
+
+func revert_changes() -> void:
+	if input_actions:
+		input_actions = ResourceLoader.load(input_actions.resource_path, "", ResourceLoader.CACHE_MODE_REPLACE)
+	_initialize_bindings()
 
 
 func restore_defaults() -> void:
@@ -613,6 +676,12 @@ func _build_menu_in_container(container: VBoxContainer) -> void:
 		rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		container.add_child(rows)
 
+	if not container.has_node("SmartInputSaver"):
+		var saver = Node.new()
+		saver.name = "SmartInputSaver"
+		saver.set_script(load("res://addons/smartinput/scripts/settings_saver.gd"))
+		container.add_child(saver)
+
 	if InputConfig.menu_show_search:
 		if not search_bar:
 			var scene = InputConfig.menu_search_bar_scene
@@ -726,11 +795,27 @@ func _build_menu_rows(root: Control, rows: VBoxContainer) -> void:
 					if left_vis: _spawn_row(rows, action.id, action.left_display_name, "left")
 					if right_vis: _spawn_row(rows, action.id, action.right_display_name, "right")
 	
-	if show_restore_defaults and InputConfig.menu_show_restore_defaults:
-		var btn = Button.new()
-		btn.text = "RESTORE ALL DEFAULTS"
-		btn.pressed.connect(func(): restore_defaults())
-		rows.add_child(btn)
+	var show_restore = show_restore_defaults and InputConfig.menu_show_restore_defaults
+	var show_revert = show_revert_changes and InputConfig.menu_show_revert_changes
+	
+	if show_restore or show_revert:
+		var container = HBoxContainer.new()
+		container.add_theme_constant_override("separation", 20)
+		rows.add_child(container)
+		
+		if show_revert:
+			var btn = Button.new()
+			btn.text = InputConfig.menu_revert_label
+			btn.pressed.connect(func(): revert_changes())
+			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			container.add_child(btn)
+
+		if show_restore:
+			var btn = Button.new()
+			btn.text = InputConfig.menu_restore_label
+			btn.pressed.connect(func(): restore_defaults())
+			btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			container.add_child(btn)
 
 
 func _is_row_search_match(a: InputAction, dir: String, query: String, category: String) -> bool:
@@ -829,19 +914,53 @@ func _get_suffix(res: InputAction, dir: String) -> String:
 
 
 static func get_vector(id: String) -> Vector2:
-	var node = Engine.get_main_loop().root.get_node_or_null("InputController")
+	var root = Engine.get_main_loop().root
+	var node = root.get_node_or_null("InputController")
 	if not node or _is_input_suppressed(id) or not id in node._action_map:
 		return Vector2.ZERO
 	var res = node._action_map[id]
+	
+	if node.is_action_toggle(id):
+		var up_key = id + "_" + res.up_suffix
+		var down_key = id + "_" + res.down_suffix
+		var left_key = id + "_" + res.left_suffix
+		var right_key = id + "_" + res.right_suffix
+		
+		var u = 1.0 if node._toggle_states.get(up_key, false) else 0.0
+		var d = 1.0 if node._toggle_states.get(down_key, false) else 0.0
+		var l = 1.0 if node._toggle_states.get(left_key, false) else 0.0
+		var r = 1.0 if node._toggle_states.get(right_key, false) else 0.0
+		
+		var vec = Vector2(r - l, d - u)
+		if vec.length_squared() > 1:
+			vec = vec.normalized()
+		return vec
+
 	return Input.get_vector(id + "_" + res.left_suffix, id + "_" + res.right_suffix, id + "_" + res.up_suffix, id + "_" + res.down_suffix)
 
 
 static func is_held(id: String) -> bool:
-	return false if _is_input_suppressed(id) else Input.is_action_pressed(id)
+	var root = Engine.get_main_loop().root
+	var node = root.get_node_or_null("InputController")
+	if not node or _is_input_suppressed(id):
+		return false
+	
+	if node.is_action_toggle(id):
+		return node._toggle_states.get(id, false)
+		
+	return Input.is_action_pressed(id)
 
 
 static func is_just_pressed(id: String) -> bool:
-	return false if _is_input_suppressed(id) else Input.is_action_just_pressed(id)
+	var root = Engine.get_main_loop().root
+	var node = root.get_node_or_null("InputController")
+	if not node or _is_input_suppressed(id):
+		return false
+	
+	if node.is_action_toggle(id):
+		return node._toggle_states.get(id, false) and Input.is_action_just_pressed(id)
+		
+	return Input.is_action_just_pressed(id)
 
 
 static func _is_input_suppressed(id: StringName) -> bool:

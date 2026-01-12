@@ -19,13 +19,16 @@ extends VBoxContainer
 
 @export_group("Localization")
 @export var search_placeholder: String = "Search actions..."
-@export var restore_label: String = "RESTORE ALL DEFAULTS"
+@export var restore_label: String = "RESTORE DEFAULTS"
+@export var revert_label: String = "REVERT CHANGES"
 
 @export_group("Visibility")
 @export var show_column_headers: bool = true
 @export var show_category_headers: bool = true
 @export var show_action_headers: bool = true
 @export var show_separators: bool = true
+@export var show_restore_defaults: bool = true
+@export var show_revert_changes: bool = true
 
 var _search_query: String = ""
 var _search_edit: LineEdit
@@ -49,8 +52,11 @@ func _ready() -> void:
 	if search_placeholder == "Search actions...":
 		search_placeholder = InputConfig.menu_search_placeholder
 	
-	if restore_label == "RESTORE ALL DEFAULTS":
+	if restore_label == "RESTORE DEFAULTS":
 		restore_label = InputConfig.menu_restore_label
+	
+	if revert_label == "REVERT CHANGES":
+		revert_label = InputConfig.menu_revert_label
 	
 	show_column_headers = InputConfig.menu_show_column_headers
 	show_category_headers = InputConfig.menu_show_category_headers
@@ -98,7 +104,7 @@ func _input(event: InputEvent) -> void:
 		   event.is_action_pressed("ui_left") or event.is_action_pressed("ui_right"):
 			if _last_focused and _last_focused.is_inside_tree() and _last_focused.visible:
 				_last_focused.grab_focus()
-			elif _search_edit and _search_edit.visible:
+			elif _search_edit and _search_edit.visible and _search_edit.is_inside_tree():
 				_search_edit.grab_focus()
 			else:
 				_focus_first_button()
@@ -232,18 +238,37 @@ func _focus_first_button() -> void:
 	for row in _rows_container.get_children():
 		for child in row.get_children():
 			if child is Button and child.focus_mode != Control.FOCUS_NONE:
-				child.grab_focus()
+				if child.is_inside_tree():
+					child.grab_focus()
 				return
 
 
 func _create_footer() -> void:
 	if footer_scene:
 		_rows_container.add_child(footer_scene.instantiate())
-	elif InputController.show_restore_defaults and InputConfig.menu_show_restore_defaults:
+		return
+
+	if not show_restore_defaults and not show_revert_changes:
+		return
+	
+	var container = HBoxContainer.new()
+	container.add_theme_constant_override("separation", 20)
+	
+	if show_revert_changes:
+		var btn = Button.new()
+		btn.text = revert_label
+		btn.pressed.connect(func(): InputController.revert_changes())
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		container.add_child(btn)
+
+	if show_restore_defaults:
 		var btn = Button.new()
 		btn.text = restore_label
 		btn.pressed.connect(func(): InputController.restore_defaults())
-		_rows_container.add_child(btn)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		container.add_child(btn)
+		
+	_rows_container.add_child(container)
 
 
 func _create_column_headers() -> void:

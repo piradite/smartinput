@@ -28,6 +28,8 @@ High-Flexibility Input Remapping Framework for Godot 4.5+
 * **Automatic UI**: One-click generation of fully functional, searchable remap menus.
 * **Whitelist/Blacklist**: Restrict remapping to specific keys or buttons.
 * **Custom Validators**: Assign a Callable for deep validation logic.
+* **Toggle Mode**: Option to make actions persistent (press to start, press again to stop).
+* **Automatic Saving**: State is automatically committed to disk when the menu is hidden or closed.
 
 --------------------------------------------------------------------------------
 
@@ -56,6 +58,9 @@ High-Flexibility Input Remapping Framework for Godot 4.5+
    ```
    *Note: This automatically injects a Search Bar and organizes actions into categories.*
 
+> [!WARNING]
+> **Do not attach custom scripts directly to the SettingsMenu VBoxContainer.** The plugin attaches an internal `SmartInputSaver` node to handle automatic saving. If you need custom logic, attach your script to a parent node instead.
+
 --------------------------------------------------------------------------------
 
 ## API Reference
@@ -72,7 +77,9 @@ You can configure these via `InputController.Namespace.property` or `InputConfig
 *   `show_action_headers` (bool): Toggle base titles for Vector2 actions.
 *   `show_separators` (bool): Toggle HSeparators between categories.
 *   `show_restore_defaults` (bool): Toggle visibility of the restore button.
+*   `show_revert_changes` (bool): Toggle visibility of the revert button.
 *   `restore_label` (String): Text shown on the restore button.
+*   `revert_label` (String): Text shown on the revert button.
 *   `label_stretch_ratio` (float): Width ratio for action labels.
 *   `button_stretch_ratio` (float): Width ratio for binding buttons.
 
@@ -104,6 +111,8 @@ You can configure these via `InputController.Namespace.property` or `InputConfig
 *   `show_conflicts` (bool): Highlights conflicting bindings in red.
 *   `unbind_inputs` (Array): Inputs that trigger an unbind (default: Delete/RightClick).
 *   `set_bindings_count(int)`: Sets columns shown (1-3).
+*   `save_config()`: Manually commits current bindings to the save file.
+*   `revert_changes()`: Reloads bindings from the save file (undoes unsaved changes).
 *   `restore_defaults()`: Resets all bindings to resource defaults.
 *   `keybind_scene` (PackedScene): Global default row scene.
 *   `modal_scene` (PackedScene): Optional scene for "Press any key" popup.
@@ -114,6 +123,8 @@ You can configure these via `InputController.Namespace.property` or `InputConfig
 *   `hide_action(id, dir)`: Hides an action from the UI menu dynamically.
 *   `unhide_action(id, dir)`: Forces a hidden action to be visible.
 *   `is_action_hidden(id, dir) -> bool`: Checks if an action is currently hidden.
+*   `set_action_toggle(id, enabled, dir)`: Sets whether an action behaves as a toggle.
+*   `is_action_toggle(id, dir) -> bool`: Checks if an action is currently in toggle mode.
 *   `block_slot(id, index, blocked, dir)`: Disables a specific column for an action.
 *   `block_category(cat)` / `unblock_category(cat)`: Hides/disables an entire category.
 *   `whitelist_inputs(id, list, dir)`: Only allow specific keys/buttons.
@@ -129,6 +140,7 @@ You can configure these via `InputController.Namespace.property` or `InputConfig
 *   `behavior` (Enum): **Press** or **Vector 2**.
 *   `is_locked` (bool): Hard-lock the action in the UI.
 *   `is_hidden` (bool): Hide the action from the UI menu by default.
+*   `is_toggle` (bool): Makes the action toggle on/off instead of requiring a hold.
 *   `blocked_indices` (Array[int]): Indices of columns to disable.
 *   `custom_row_scene` (PackedScene): Visual override for this specific action.
 *   `device_limit` (Enum): Restrict hardware type for this action.

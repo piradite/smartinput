@@ -15,6 +15,10 @@ enum DeviceRequirement { BOTH, KEYBOARD_ONLY, CONTROLLER_ONLY }
 	set(value):
 		is_hidden = value
 		emit_changed()
+@export var is_toggle: bool = false:
+	set(value):
+		is_toggle = value
+		emit_changed()
 @export var blocked_indices: Array[int] = []
 @export var custom_row_scene: PackedScene
 

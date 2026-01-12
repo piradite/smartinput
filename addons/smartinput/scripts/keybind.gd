@@ -159,7 +159,6 @@ func _apply_remap_to_index(index: int, event: InputEvent) -> void:
 		InputController.remap_vector(action_id, direction, index, event)
 	
 	InputController.remapping_finished.emit(action_id, index, event)
-	InputController.save_config()
 	_cleanup_remap()
 	_update_buttons()
 
