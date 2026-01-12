@@ -1,4 +1,4 @@
-# SmartInput 1.1.0
+# SmartInput 1.1.1
 High-Flexibility Input Remapping Framework for Godot 4.5+
 
 - Professional-grade input logic and UI generation.
