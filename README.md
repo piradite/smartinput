@@ -1,4 +1,4 @@
-# SmartInput 1.1.1
+# SmartInput 1.1.2
 High-Flexibility Input Remapping Framework for Godot 4.5+
 
 - Professional-grade input logic and UI generation.
@@ -11,7 +11,6 @@ High-Flexibility Input Remapping Framework for Godot 4.5+
 &ensp;[<kbd> <br> Installation <br> </kbd>](#Installation)&ensp;
 &ensp;[<kbd> <br> API Reference <br> </kbd>](#api-reference)&ensp;
 &ensp;[<kbd> <br> Icon Library Guide <br> </kbd>](#icon-library-inputicon)&ensp;
-&ensp;[<kbd> <br> FAQ <br> </kbd>](#FAQ)&ensp;
 <br><br><br><br></div>
 
 --------------------------------------------------------------------------------
@@ -66,10 +65,10 @@ High-Flexibility Input Remapping Framework for Godot 4.5+
 ## API Reference
 
 ### Global Configuration
-You can configure these via `InputController.Namespace.property` or `InputConfig.menu_property`.
+You can configure these via `InputController.Namespace.property` (e.g., `InputController.SettingsMenu.show_search = false`) or by modifying the `InputConfig` class in `globals.gd`.
 
 #### SettingsMenu (UI Layout & Visibility)
-*   `show_search` (bool): Toggle search bar visibility (Default: true).
+*   `show_search` (bool): Toggle search bar visibility.
 *   `search_placeholder` (String): Placeholder text for the search bar.
 *   `column_titles` (Array[String]): Titles for the binding columns.
 *   `show_column_headers` (bool): Toggle "ACTION PRIMARY..." header row.
@@ -88,7 +87,7 @@ You can configure these via `InputController.Namespace.property` or `InputConfig
 *   `category_header_scene` (PackedScene): Custom scene for category titles.
 *   `action_header_scene` (PackedScene): Custom scene for vector action headers.
 *   `column_header_scene` (PackedScene): Custom scene for the column title row.
-*   `search_bar_scene` (PackedScene): Custom scene replacing the search bar (Default: `ui/search.tscn`).
+*   `search_bar_scene` (PackedScene): Custom scene replacing the search bar.
 *   `footer_scene` (PackedScene): Custom scene replacing the footer area.
 
 #### Keybind & Action Defaults
@@ -97,12 +96,18 @@ You can configure these via `InputController.Namespace.property` or `InputConfig
 *   `InputAction.category` (String): Default category for new actions.
 *   `InputAction.deadzone` (float): Default deadzone (0.5).
 *   `InputAction.device_limit` (int): 0 = Both, 1 = Keyboard Only, 2 = Controller Only.
+*   `InputAction.multi_click_window` (float): Time window for double/triple clicks (Default: 0.25).
+*   `InputAction.multi_click_delayed` (bool): If true, delays double-click emission to ensure exclusivity with triple-clicks (Default: true).
+*   `InputAction.up_display_name / down_ / left_ / right_` (String): Default labels for directions.
+*   `InputAction.up_suffix / down_ / left_ / right_` (String): Suffixes for InputMap actions.
 
 ### InputController (Core Logic)
 #### Gameplay API (Static)
 *   `InputController.get_vector(id: String) -> Vector2`: Gets movement (WASD/Joystick).
 *   `InputController.is_held(id: String) -> bool`: Checks if an action is pressed.
 *   `InputController.is_just_pressed(id: String) -> bool`: Checks if an action was hit this frame.
+*   `InputController.is_double_clicked(id: String) -> bool`: Checks if an action was double-tapped this frame.
+*   `InputController.is_triple_clicked(id: String) -> bool`: Checks if an action was triple-tapped this frame.
 
 #### Remapping Logic & State
 *   `input_actions` (InputActionsList): The resource containing your action definitions.
@@ -160,19 +165,11 @@ Name files in lowercase using underscores (e.g., `space.png`, `mouse_1.png`, `jo
 
 ## Signals Reference
 - **action_pressed(id)** / **action_released(id)**
+- **action_double_clicked(id)** / **action_triple_clicked(id)**
 - **device_changed(is_controller)**: Emitted when hardware changes.
 - **bindings_updated**: Emitted when keys change or defaults restored.
 - **request_menu_build**: Triggers a UI refresh.
 - **remapping_started(id, index)** / **remapping_finished(id, index, event)**
-
---------------------------------------------------------------------------------
-
-## FAQ
-**Q: How do I handle conflicts?**
-A: Enable `show_conflicts` on the `InputController`. Conflicting buttons will turn red and show a tooltip listing other actions using that key.
-
-**Q: Where are the files saved?**
-A: User bindings are saved to the `save_path` defined in `InputController`.
 
 --------------------------------------------------------------------------------
 

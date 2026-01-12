@@ -42,6 +42,8 @@ static var action_up_suffix: String = "up"
 static var action_down_suffix: String = "down"
 static var action_left_suffix: String = "left"
 static var action_right_suffix: String = "right"
+static var multi_click_window: float = 0.25
+static var multi_click_delayed: bool = true
 
 # InputIcon Defaults
 static var icon_keyboard_path: String = ""

@@ -3,6 +3,8 @@ extends Node
 
 signal action_pressed(action_id: StringName)
 signal action_released(action_id: StringName)
+signal action_double_clicked(action_id: StringName)
+signal action_triple_clicked(action_id: StringName)
 signal device_changed(is_controller: bool)
 signal bindings_updated
 signal request_menu_build
@@ -149,6 +151,22 @@ class InputActionProxy:
 	var right_suffix: String:
 		get: return InputConfig.action_right_suffix
 		set(v): InputConfig.action_right_suffix = v
+	
+	var multi_click_window: float:
+		get: return InputConfig.multi_click_window
+		set(v): 
+			InputConfig.multi_click_window = v
+			var node = Engine.get_main_loop().root.get_node_or_null("InputController")
+			if node:
+				node.multi_click_window = v
+	
+	var multi_click_delayed: bool:
+		get: return InputConfig.multi_click_delayed
+		set(v):
+			InputConfig.multi_click_delayed = v
+			var node = Engine.get_main_loop().root.get_node_or_null("InputController")
+			if node:
+				node.multi_click_delayed = v
 
 
 class InputIconProxy:
@@ -187,6 +205,8 @@ const InputActionsList = InputActionsListScript
 @export var show_restore_defaults: bool = true
 @export var show_revert_changes: bool = true
 @export var unbind_inputs: Array = [KEY_DELETE]
+@export var multi_click_window: float = 0.25
+@export var multi_click_delayed: bool = true
 @export_range(1, 3) var bindings_per_action: int = 3
 
 var is_remapping: bool = false
@@ -200,13 +220,36 @@ var _toggle_states: Dictionary = {}
 var _runtime_slot_blocks: Dictionary = {}
 var _whitelists: Dictionary = {}
 var _blacklists: Dictionary = {}
+var _last_click_times: Dictionary = {}
+var _click_counts: Dictionary = {}
+var _double_click_frames: Dictionary = {}
+var _triple_click_frames: Dictionary = {}
+var _pending_click_timers: Dictionary = {}
 var validator_func: Callable
 
 
 func _ready() -> void:
+	process_priority = -100
+	if multi_click_window == 0.25:
+		multi_click_window = InputConfig.multi_click_window
+	
+	multi_click_delayed = InputConfig.multi_click_delayed
+		
 	if not keybind_scene:
 		keybind_scene = load("res://addons/smartinput/ui/keybind.tscn")
 	_initialize_bindings()
+
+
+func _process(delta: float) -> void:
+	var to_remove = []
+	for id in _pending_click_timers:
+		_pending_click_timers[id] -= delta
+		if _pending_click_timers[id] <= 0:
+			_emit_delayed_double_click(id)
+			to_remove.append(id)
+	
+	for id in to_remove:
+		_pending_click_timers.erase(id)
 
 
 func _input(event: InputEvent) -> void:
@@ -233,11 +276,13 @@ func _unhandled_input(event: InputEvent) -> void:
 					_toggle_states[id] = new_state
 					if new_state:
 						action_pressed.emit(id)
+						_check_multi_click(id)
 					else:
 						action_released.emit(id)
 			else:
 				if event.is_action_pressed(id):
 					action_pressed.emit(id)
+					_check_multi_click(id)
 				elif event.is_action_released(id):
 					action_released.emit(id)
 		
@@ -253,6 +298,66 @@ func _unhandled_input(event: InputEvent) -> void:
 					var sub_id = str(id) + "_" + directions[dir]
 					if event.is_action_pressed(sub_id):
 						_toggle_states[sub_id] = not _toggle_states.get(sub_id, false)
+
+
+func _check_multi_click(id: StringName) -> void:
+	var now = Time.get_ticks_msec() / 1000.0
+	var last = _last_click_times.get(id, 0.0)
+	var count = _click_counts.get(id, 0)
+	
+	if now - last <= multi_click_window:
+		count += 1
+	else:
+		count = 1
+	
+	_last_click_times[id] = now
+	_click_counts[id] = count
+	
+	if multi_click_delayed:
+		if count == 2:
+			# Start "wait and see" timer for double click
+			_pending_click_timers[id] = multi_click_window
+		elif count == 3:
+			# Triple click happened! Cancel the pending double click and fire triple immediately.
+			_pending_click_timers.erase(id)
+			_emit_triple_click(id)
+			_click_counts[id] = 0
+	else:
+		if count == 2:
+			_emit_double_click(id)
+		elif count == 3:
+			_emit_triple_click(id)
+			_click_counts[id] = 0
+
+
+func _emit_delayed_double_click(id: StringName) -> void:
+	_emit_double_click(id)
+
+
+func _emit_double_click(id: StringName) -> void:
+	action_double_clicked.emit(id)
+	_double_click_frames[id] = Engine.get_process_frames()
+
+
+func _emit_triple_click(id: StringName) -> void:
+	action_triple_clicked.emit(id)
+	_triple_click_frames[id] = Engine.get_process_frames()
+
+
+
+static func is_double_clicked(id: String) -> bool:
+	var node = Engine.get_main_loop().root.get_node_or_null("InputController")
+	if not node:
+		return false
+	return node._double_click_frames.get(id, -1) == Engine.get_process_frames()
+
+
+static func is_triple_clicked(id: String) -> bool:
+	var node = Engine.get_main_loop().root.get_node_or_null("InputController")
+	if not node:
+		return false
+	return node._triple_click_frames.get(id, -1) == Engine.get_process_frames()
+
 
 
 func _initialize_bindings() -> void:
